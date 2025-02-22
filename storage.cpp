@@ -1,28 +1,40 @@
-#include <iostream>
-#include <fstream>
+#include "storage.h"
 #include <vector>
-#include <string>
-#include "NBARecord.h"
+#include <iostream>
 
-using namespace std;
+NBARecord::NBARecord(const std::string& line){
+    //see parsing of exact line for debugging
+    std::cout << "Parsing line: " << line << std::endl;
 
-struct Block
-{
-    vector<NBARecord> records;
-};
+    //parsing the line
+    int parsed = sscanf(line.c_str(), "%s %d %d %f %f %f %d %d %d", 
+                        &GAME_DATE_EST[0], &TEAM_ID_home, &PTS_home, &FG_PCT_home, 
+                        &FT_PCT_home, &FG3_PCT_home, &AST_home, &REB_home, &HOME_TEAM_WINS);
+    
+    if (parsed != 9) {
+        std::cerr << "Error: Failed to parse the line correctly\n";
+    }
+}
 
+NBARecord::NBARecord() : TEAM_ID_home(0), PTS_home(0), FG_PCT_home(0.0f), FT_PCT_home(0.0f),
+        FG3_PCT_home(0.0f), AST_home(0), REB_home(0), HOME_TEAM_WINS(0) {}
 
-vector<Block> readDataStoreInBlocks(const string& filename, int blockSize){
+Block::Block() {
+    records = std::vector<NBARecord>(BLOCK_SIZE);
+}
 
-    ifstream file(filename);
+Storage::Storage() {
+    blocks = std::vector<Block>(0);
+}
+
+void Storage::loadFromFile(const std::string& filename) {
+    std::ifstream file(filename);
     if (!file.is_open()) {
-        cerr << "Error: Unable to open file " << filename << endl;
-        return {};  //returning empty vector to prevent crashes
+        std::cerr << "Error: Unable to open file " << filename << std::endl;
     }
 
-    vector<Block> blocks;
     Block currBlock;
-    string line;
+    std::string line;
     int totalRecords = 0;
 
     //skip the header line 
@@ -34,7 +46,7 @@ vector<Block> readDataStoreInBlocks(const string& filename, int blockSize){
         currBlock.records.push_back(record);
         totalRecords++;
 
-        if(currBlock.records.size() >= blockSize){
+        if(currBlock.records.size() >= BLOCK_SIZE){
             blocks.push_back(currBlock);
             currBlock.records.clear();
         }
@@ -46,26 +58,8 @@ vector<Block> readDataStoreInBlocks(const string& filename, int blockSize){
     }
 
     file.close();
-
-    cout << "Size of record: " << sizeof(NBARecord) << " bytes" << endl;
-    cout << "Total no. of records: " << totalRecords << endl;
-    cout << "Records per block: " << blockSize << endl;
-    cout << "Total no. of blocks: " << blocks.size() << endl;
-
-    return blocks;
-
+    std::cout << "Size of record: " << sizeof(NBARecord) << " bytes" << std::endl;
+    std::cout << "Total no. of records: " << totalRecords << std::endl;
+    std::cout << "Records per block: " << BLOCK_SIZE << std::endl;
+    std::cout << "Total no. of blocks: " << blocks.size() << std::endl;
 }
-/*
-int main()
-{
-    string filename = "games.txt";
-    int blockSize = 4;
-
-    vector<Block> blocks = readDataStoreInBlocks(filename, blockSize);
-
-    cout << "No. of blocks: " << blocks.size() << endl;
-    cout << "No. of records in each block: " << blockSize << endl;
-
-    return 0;
-}
-*/
