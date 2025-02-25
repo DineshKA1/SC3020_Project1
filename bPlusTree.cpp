@@ -37,3 +37,27 @@ class BPlusTree{
         float minKey, maxKey;
         int branchingFactor;
     };
+
+void BPlusTree::insert(NBARecord* record){
+    float key = record->FG_PCT_home;
+
+    if(root == nullptr){
+        root = new BPlusTreeNode(true); //create root as leaf node
+    }
+
+    BPlusTreeNode* node = root;
+    while(!node->isLeaf){
+        int index = std::lower_bound(node->keys.begin(), node->keys.end(), key) - node->keys.begin();
+        node = node->children[index];
+    }
+    //inserting the record into the correct leaf node 
+    node->keys.push_back(key);
+    node->records.push_back(record);
+    std::sort(node->keys.begin(), node->keys.end());
+
+    //split if the leaf node overflows
+    if(node->keys.size() > branchingFactor){
+        splitLeafNode(node, 0);
+    }
+
+}
