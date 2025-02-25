@@ -5,7 +5,7 @@
 #include <cmath>
 #include <cassert>
 #include <iomanip>
-#include "NBARecord.h"
+#include "storage.h"
 
 struct BPlusTreeNode
 {
