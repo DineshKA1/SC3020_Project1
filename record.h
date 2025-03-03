@@ -16,6 +16,9 @@ public:
 
     int size() const;
     std::string toString() const;
+    std::string serialize() const;
+    
+    static Record deserialize(const std::string &serialized);
 };
 
 #endif // RECORD_H
