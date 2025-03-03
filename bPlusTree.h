@@ -9,6 +9,7 @@
 #include <cassert>
 #include <iomanip>
 #include "storage.h"
+#include "record.h"
 
 struct BPlusTreeNode
 {

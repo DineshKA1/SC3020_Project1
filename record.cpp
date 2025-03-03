@@ -1,4 +1,4 @@
-#include "Record.h"
+#include "record.h"
 #include <string>
 #include <fstream>
 #include <iomanip>

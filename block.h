@@ -2,7 +2,7 @@
 #define BLOCK_H
 
 #include <vector>
-#include "Record.h"
+#include "record.h"
 
 class Block {
 public:
