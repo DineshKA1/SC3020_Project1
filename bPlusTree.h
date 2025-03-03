@@ -19,6 +19,7 @@ struct BPlusTreeNode
     BPlusTreeNode* parent;
 
     BPlusTreeNode(bool isLeaf = false) : isLeaf(isLeaf), parent(nullptr) {}
+    std::string toString();
 };
 
 class BPlusTree{
@@ -29,12 +30,17 @@ class BPlusTree{
         void insert(Record* record);
         std::vector<Record*> search(float low, float high);
         void printTree();
+        void deserialize(std::ifstream& inFile);
+        void serialize(std::ofstream& outFile);
     
     private:
         void insertInternal(BPlusTreeNode* node, float key, BPlusTreeNode* newChild);
         BPlusTreeNode* searchNode(BPlusTreeNode* node, float key);
         void splitLeafNode(BPlusTreeNode* parent);
         void splitInternalNode(BPlusTreeNode* parent);
+
+        void serializeNode(std::ofstream& outFile, BPlusTreeNode* node);
+        BPlusTreeNode* deserializeNode(std::ifstream& inFile, BPlusTreeNode* node);
     
         BPlusTreeNode* root;
         float minKey, maxKey;

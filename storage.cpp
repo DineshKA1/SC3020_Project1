@@ -12,10 +12,14 @@ void Storage::loadData(const string &filename) {
     Block currentBlock(currentBlockId);
     while (getline(file, line)) {
         stringstream ss(line);
-        string game_id, team_home, team_away;
+        string game_data_set;
+        int team_id_home, pts_home, AST_home, REB_home;
+        bool HOME_TEAM_WINS;
+        float FG3_PCT_home;
+
         float FG_PCT_home, FG_PCT_away;
-        ss >> game_id >> team_home >> team_away >> FG_PCT_home >> FG_PCT_away;
-        Record record(game_id, team_home, team_away, FG_PCT_home, FG_PCT_away);
+        ss >> game_data_set >> team_id_home >> pts_home >> FG_PCT_home >> FG_PCT_away >> FG3_PCT_home >> AST_home >> REB_home >> HOME_TEAM_WINS;
+        Record record(game_data_set, team_id_home, pts_home, FG_PCT_home, FG_PCT_away, FG3_PCT_home, AST_home, REB_home, HOME_TEAM_WINS);
 
         if (!currentBlock.addRecord(record)) {
             blocks.push_back(currentBlock);
@@ -38,10 +42,13 @@ void Storage::printAllBlocks() const {
 
 void Storage::printStatistics() const {
     int totalRecords = 0;
+    int sizeOfRecord;
     for (const Block &block : blocks) {
         totalRecords += block.records.size();
+        sizeOfRecord = block.records[0].size();
     }
 
+    cout << "Size of each record: " << sizeOfRecord << " bytes" << endl;
     cout << "Total number of records: " << totalRecords << endl;
     cout << "Total number of blocks: " << blocks.size() << endl;
     cout << "Block size: " << 4096 << " bytes" << endl; // add to const

@@ -5,14 +5,14 @@
 
 class Record {
 public:
-    std::string game_id;
-    std::string team_home;
-    std::string team_away;
-    float FG_PCT_home;
-    float FG_PCT_away;
-
+    std::string game_date_set;
+    int team_id_home;
+    int pts_home;
+    float FG_PCT_home,  FG_PCT_away, FG3_PCT_home;
+    short AST_home, REB_home;
+    bool HOME_TEAM_WINS;
     Record();
-    Record(const std::string &id, const std::string &home, const std::string &away, float fg_home, float fg_away);
+    Record(const std::string &date, const int &homeID, const int &pts_home, float fg_home, float fg_away, float fg3_home, short ast_home, short reb_home, bool homeWins);
 
     int size() const;
     std::string toString() const;
