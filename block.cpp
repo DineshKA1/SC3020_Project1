@@ -1,5 +1,6 @@
 #include "block.h"
 #include <iostream>
+#include <sstream>
 using namespace std;
 
 Block::Block(int id) : block_id(id) {}
@@ -29,4 +30,27 @@ void Block::printBlock() const {
     for (const Record &rec : records) {
         cout << rec.toString() << endl;
     }
+}
+
+string Block::serialize() const{
+    stringstream ss;
+    ss << block_id << ";";
+    for (const Record &rec : records) {
+        ss << rec.serialize() << "|";
+    }
+    return ss.str();
+}
+
+Block Block::deserialize(const string &serialized){
+    stringstream ss(serialized);
+    string segment;
+
+    getline(ss, segment, ';');
+    int id = stoi(segment);
+    Block block(id);
+    while (getline(ss, segment, '|')) {
+        block.records.push_back(Record::deserialize(segment));
+    }
+
+    return block;
 }

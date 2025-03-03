@@ -235,6 +235,82 @@ std::string BPlusTreeNode::toString() {
     return result;
 }
 
+
+void BPlusTree::serialize(const std::string& filename){
+    std::ofstream file(filename, std::ios::binary);
+    if (!file){
+        std::cerr << "Error opening file " << filename << std::endl;
+        return;
+    }
+    serializeNode(file,root);
+    file.close();
+}
+
+void BPlusTree::serializeNode(std::ofstream& file, BPlusTreeNode* node){
+    if(!node) return;
+    file.write(reinterpret_cast<char*>(&node->isLeaf), sizeof(bool));
+    size_t keySize = node->keys.size();
+    file.write(reinterpret_cast<char*>(&keySize), sizeof(size_t));
+    file.write(reinterpret_cast<char*>(node->keys.data()), keySize * sizeof(float));
+
+    if(node->isLeaf){
+        size_t recordSize = node->records.size();
+        file.write(reinterpret_cast<char*>(&recordSize), sizeof(size_t));
+        for(auto* record : node->records){
+            file.write(reinterpret_cast<char*>(record), sizeof(Record));
+        }
+        } 
+    else {
+            size_t childSize = node->children.size();
+            file.write(reinterpret_cast<char*>(&childSize), sizeof(size_t));
+            for (auto* child : node->children) {
+                serializeNode(file, child);
+            }
+        }
+}
+
+
+void BPlusTree::deserialize(const std::string& filename){
+    std::ifstream file(filename, std::ios::binary);
+    if (!file) {
+        std::cerr << "Error opening file " << filename << std::endl;
+        return;
+        }
+    root = deserializeNode(file);
+    file.close();
+}
+
+BPlusTreeNode* BPlusTree::deserializeNode(std::ifstream& file){
+    bool isLeaf;
+    file.read(reinterpret_cast<char*>(&isLeaf), sizeof(bool));
+    BPlusTreeNode* node = new BPlusTreeNode(isLeaf);
+    size_t keySize;
+    file.read(reinterpret_cast<char*>(&keySize), sizeof(size_t));
+    node->keys.resize(keySize);
+    file.read(reinterpret_cast<char*>(node->keys.data()), keySize * sizeof(float));
+    if (node->isLeaf) {
+        size_t recordSize;
+        file.read(reinterpret_cast<char*>(&recordSize), sizeof(size_t));
+        for (size_t i=0; i < recordSize; i++){
+            Record* record = new Record();
+            file.read(reinterpret_cast<char*>(record), sizeof(Record));
+            node->records.push_back(record);
+        }
+    }
+    else {
+        size_t childSize;
+        file.read(reinterpret_cast<char*>(&childSize), sizeof(size_t));
+        for (size_t i=0; i < childSize; i++) {
+            node->children.push_back(deserializeNode(file));
+        }
+
+    }
+    return node;
+}
+
+
+
+
 // void BPlusTree::serialize(std::ofstream& outFile) {
 //     if (!outFile.is_open()) {
 //         throw std::runtime_error("File not open for writing");
