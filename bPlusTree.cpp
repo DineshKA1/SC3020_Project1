@@ -276,11 +276,11 @@ void BPlusTree::deserialize(const std::string& filename){
         std::cerr << "Error opening file " << filename << std::endl;
         return;
         }
-    root = deserializeNode(file);
+    root = deserializeNode(file, nullptr);
     file.close();
 }
 
-BPlusTreeNode* BPlusTree::deserializeNode(std::ifstream& file){
+BPlusTreeNode* deserializeNode(std::ifstream& file){
     bool isLeaf;
     file.read(reinterpret_cast<char*>(&isLeaf), sizeof(bool));
     BPlusTreeNode* node = new BPlusTreeNode(isLeaf);
