@@ -282,7 +282,7 @@ void BPlusTree::deserialize(const std::string& filename){
     file.close();
 }
 
-BPlusTreeNode* deserializeNode(std::ifstream& file, BPlusTreeNode* parent){
+BPlusTreeNode* BPlusTree::deserializeNode(std::ifstream& file, BPlusTreeNode* parent){
     if (file.eof()) return nullptr;
 
     bool isLeaf;

@@ -61,3 +61,32 @@ int Storage::getNumOfBlocks() {
 Block Storage::getBlock(int offset) {
     return blocks[offset];
 }
+
+void Storage::loadFromDB(const string &filename) {
+    ifstream file(filename);
+    if (!file) {
+        cerr << "Error opening file " << filename << endl;
+        return;
+    }
+
+    Block block;
+    string ss;
+    while (file >> ss) {
+        block = Block::deserialize(ss);
+        blocks.push_back(block);
+    }
+    file.close();
+}
+
+void Storage::saveToDB(const string &filename) {
+    ofstream file(filename);
+    if (!file) {
+        cerr << "Error opening file " << filename << endl;
+        return;
+    }
+
+    for (const Block &block : blocks) {
+        file.write(block.serialize().c_str(), block.serialize().size());
+    }
+    file.close();
+}

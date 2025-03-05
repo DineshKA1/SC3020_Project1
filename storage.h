@@ -16,6 +16,8 @@ public:
     Block getBlock(int offset);
     void printAllBlocks() const;
     void printStatistics() const;
+    void loadFromDB(const std::string &filename);
+    void saveToDB(const std::string &filename);
 };
 
 #endif // STORAGE_H

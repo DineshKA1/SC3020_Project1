@@ -3,6 +3,8 @@
 #include <sstream>
 using namespace std;
 
+Block::Block() : block_id(-1) {}
+
 Block::Block(int id) : block_id(id) {}
 
 int Block::getBlockSize() const {
@@ -38,6 +40,7 @@ string Block::serialize() const{
     for (const Record &rec : records) {
         ss << rec.serialize() << "|";
     }
+    ss << "\n";
     return ss.str();
 }
 
