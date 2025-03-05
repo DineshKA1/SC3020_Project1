@@ -31,16 +31,18 @@ class BPlusTree{
         void insert(Record* record);
         std::vector<Record*> search(float low, float high);
         void printTree();
-        void serialize(const std::string& filename);
+        void serialize(const std::string& filename) const;
         void deserialize(const std::string& filename);
-        void serializeNode(std::ofstream& file, BPlusTreeNode* node);
-        BPlusTreeNode* deserializeNode(std::ifstream& file, BPlusTreeNode* parent);
+        void serializeNode(std::ofstream& file, BPlusTreeNode* node) const;
+        BPlusTreeNode* deserializeNode(std::ifstream& file, BPlusTreeNode* parent, std::vector<BPlusTreeNode*>& leafNodes);
     
     private:
         void insertInternal(BPlusTreeNode* node, float key, BPlusTreeNode* newChild);
         BPlusTreeNode* searchNode(BPlusTreeNode* node, float key);
         void splitLeafNode(BPlusTreeNode* parent);
         void splitInternalNode(BPlusTreeNode* parent);
+        void serializeRecord(std::ofstream& outFile, Record* record) const;
+        Record* deserializeRecord(std::ifstream& inFile) const;
 
     
         BPlusTreeNode* root;

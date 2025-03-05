@@ -17,7 +17,7 @@ void BPlusTree::insert(Record* record) {
         std::cout << "Inserting Record: " << record->toString() << ", with key = " << key << std::endl;
 
     if (root == nullptr) {
-        root = new BPlusTreeNode(true); // Create root as a leaf node
+        root = new BPlusTreeNode(true);
     }
 
     BPlusTreeNode* node = root;
@@ -164,6 +164,10 @@ void BPlusTree::printTree() {
                     totRecord++;
                 }
             } else {
+                std::cout << "DEBUG_PRINT_TREE:";
+                for (BPlusTreeNode* child : node->children) {
+                    std::cout << child << " ";
+                }
                 for (float key : node->keys) {
                     std::cout << key << " ";
                 }
@@ -235,204 +239,106 @@ std::string BPlusTreeNode::toString() {
     return result;
 }
 
-
-void BPlusTree::serialize(const std::string& filename){
-    std::ofstream file(filename, std::ios::binary);
-    if (!file){
-        std::cerr << "Error opening file " << filename << std::endl;
-        return;
-    }
-    serializeNode(file,root);
-    file.close();
+void BPlusTree::serializeRecord(std::ofstream& outFile, Record* record) const {
+    std::string serializedRecord = record->serialize();
+    size_t record_size = serializedRecord.size();
+    outFile.write(reinterpret_cast<const char*>(&record_size), sizeof(record_size));
+    outFile.write(serializedRecord.c_str(), record_size);
 }
 
-void BPlusTree::serializeNode(std::ofstream& file, BPlusTreeNode* node) {
-    if (!node) return;
-    
-    file.write(reinterpret_cast<char*>(&node->isLeaf), sizeof(bool));
-    
-    size_t keySize = node->keys.size();
-    file.write(reinterpret_cast<char*>(&keySize), sizeof(size_t));
-    file.write(reinterpret_cast<char*>(node->keys.data()), keySize * sizeof(float));
+Record* BPlusTree::deserializeRecord(std::ifstream& inFile) const {
+    size_t record_size;
+    inFile.read(reinterpret_cast<char*>(&record_size), sizeof(record_size));
 
-    if (node->isLeaf) {
-        size_t recordSize = node->records.size();
-        file.write(reinterpret_cast<char*>(&recordSize), sizeof(size_t));
-        for (auto* record : node->records) {
-            file.write(reinterpret_cast<char*>(record), sizeof(Record));
+    std::vector<char> buffer(record_size + 1);
+    inFile.read(buffer.data(), record_size);
+    buffer[record_size] = '\0'; 
+    std::string serializedRecord(buffer.data());
+    Record* record = new Record();
+    *record = Record::deserialize(serializedRecord); 
+    return record;
+}
+
+void BPlusTree::serialize(const std::string& filename) const {
+    std::ofstream outFile(filename, std::ios::binary);
+    if (!outFile) {
+        throw std::runtime_error("Unable to open file for saving B+ tree.");
+    }
+    serializeNode(outFile, root);
+    outFile.close();
+}
+
+void BPlusTree::serializeNode(std::ofstream& outFile, BPlusTreeNode* node) const {
+    bool isLeaf = node->isLeaf;
+    outFile.write(reinterpret_cast<const char*>(&isLeaf), sizeof(isLeaf));
+
+    int keyCount = node->keys.size();
+    outFile.write(reinterpret_cast<const char*>(&keyCount), sizeof(keyCount));
+    for (float key : node->keys) {
+        outFile.write(reinterpret_cast<const char*>(&key), sizeof(key));
+    }
+
+    if (isLeaf) {
+        int recordCount = node->records.size();
+        outFile.write(reinterpret_cast<const char*>(&recordCount), sizeof(recordCount));
+        for (Record* record : node->records) {
+            serializeRecord(outFile, record);
         }
     } else {
-        size_t childSize = node->children.size();
-        file.write(reinterpret_cast<char*>(&childSize), sizeof(size_t));
-        for (auto* child : node->children) {
-            serializeNode(file, child);
+        int childCount = node->children.size();
+        outFile.write(reinterpret_cast<const char*>(&childCount), sizeof(childCount));
+        for (BPlusTreeNode* child : node->children) {
+            serializeNode(outFile, child);  
         }
     }
 }
 
+void BPlusTree::deserialize(const std::string& filename) {
+    std::ifstream inFile(filename, std::ios::binary);
+    if (!inFile) {
+        throw std::runtime_error("Unable to open file for loading B+ tree.");
+    }
 
-
-void BPlusTree::deserialize(const std::string& filename){
-    std::ifstream file(filename, std::ios::binary);
-    if (!file) {
-        std::cerr << "Error opening file " << filename << std::endl;
-        return;
-        }
-    root = deserializeNode(file, nullptr);
-    file.close();
+    std::vector<BPlusTreeNode*> leafNodes;  
+    root = deserializeNode(inFile, nullptr, leafNodes);
+    for (size_t i = 0; i < leafNodes.size() - 1; ++i) {
+        leafNodes[i]->children.push_back(leafNodes[i + 1]); 
+    }
+    inFile.close();
 }
 
-BPlusTreeNode* BPlusTree::deserializeNode(std::ifstream& file, BPlusTreeNode* parent){
-    if (file.eof()) return nullptr;
 
+BPlusTreeNode* BPlusTree::deserializeNode(std::ifstream& inFile, BPlusTreeNode* parent, std::vector<BPlusTreeNode*>& leafNodes) {
     bool isLeaf;
-    file.read(reinterpret_cast<char*>(&isLeaf), sizeof(bool));
-    if (file.fail()) return nullptr;
-
+    static int count = 0;
+    count++;
+    inFile.read(reinterpret_cast<char*>(&isLeaf), sizeof(isLeaf));
     BPlusTreeNode* node = new BPlusTreeNode(isLeaf);
     node->parent = parent;
-
-    size_t keySize;
-    file.read(reinterpret_cast<char*>(&keySize), sizeof(size_t));
-    if (file.fail()) return nullptr;
-
-    node->keys.resize(keySize);
-    file.read(reinterpret_cast<char*>(node->keys.data()), keySize * sizeof(float));
-    
-    if (node->isLeaf) {
-
-        size_t recordSize;
-        file.read(reinterpret_cast<char*>(&recordSize), sizeof(size_t));
-        if (file.fail()) return nullptr;
-        
-        for (size_t i=0; i < recordSize; i++){
-
-            Record* record = new Record();
-            file.read(reinterpret_cast<char*>(record), sizeof(Record));
-            if (file.fail()) {
-                delete record;
-                return nullptr;
-            }
-            node->records.push_back(record);
-        }
+    int keyCount;
+    inFile.read(reinterpret_cast<char*>(&keyCount), sizeof(keyCount));
+    node->keys.resize(keyCount);
+    for (int i = 0; i < keyCount; ++i) {
+        inFile.read(reinterpret_cast<char*>(&node->keys[i]), sizeof(node->keys[i]));
     }
-    else {
 
-        size_t childSize;
-        file.read(reinterpret_cast<char*>(&childSize), sizeof(size_t));
-        if (file.fail()) return nullptr;
-
-        for (size_t i=0; i < childSize; i++) {
-            BPlusTreeNode* child = deserializeNode(file, node);
-            if (child){
-                node->children.push_back(child);
-            }
+    if (isLeaf) {
+        int recordCount;
+        inFile.read(reinterpret_cast<char*>(&recordCount), sizeof(recordCount));
+        node->records.resize(recordCount);
+        for (int i = 0; i < recordCount; ++i) {
+            node->records[i] = deserializeRecord(inFile); 
         }
 
+        leafNodes.push_back(node);
+    } else {
+        int childCount;
+        inFile.read(reinterpret_cast<char*>(&childCount), sizeof(childCount));
+        node->children.resize(childCount);
+        for (int i = 0; i < childCount; ++i) {
+            node->children[i] = deserializeNode(inFile, node, leafNodes); 
+        }
     }
     return node;
 }
-
-
-
-
-// void BPlusTree::serialize(std::ofstream& outFile) {
-//     if (!outFile.is_open()) {
-//         throw std::runtime_error("File not open for writing");
-//     }
-    
-//     // 递归序列化从根节点开始
-//     serializeNode(outFile, root);
-// }
-
-// void BPlusTree::serializeNode(std::ofstream& outFile, BPlusTreeNode* node) {
-//     // 写入节点类型（叶子节点或内部节点）
-//     bool isLeaf = node->isLeaf;
-//     outFile.write(reinterpret_cast<const char*>(&isLeaf), sizeof(isLeaf));
-
-//     // 写入关键字数量和关键字列表
-//     int keyCount = node->keys.size();
-//     outFile.write(reinterpret_cast<const char*>(&keyCount), sizeof(keyCount));
-//     for (float key : node->keys) {
-//         outFile.write(reinterpret_cast<const char*>(&key), sizeof(key));
-//     }
-
-//     if (isLeaf) {
-//         // 叶子节点：写入记录
-//         int recordCount = node->records.size();
-//         outFile.write(reinterpret_cast<const char*>(&recordCount), sizeof(recordCount));
-//         for (Record* record : node->records) {
-//             record->serialize(outFile); // 假设 Record 类有 serialize 函数
-//         }
-
-//         // 写入 children[0]（即 next）是否存在
-//         bool hasNext = !node->children.empty() && node->children[0] != nullptr;
-//         outFile.write(reinterpret_cast<const char*>(&hasNext), sizeof(hasNext));
-//     } else {
-//         // 内部节点：写入子节点
-//         int childCount = node->children.size();
-//         outFile.write(reinterpret_cast<const char*>(&childCount), sizeof(childCount));
-//         for (BPlusTreeNode* child : node->children) {
-//             serializeNode(outFile, child); // 递归写入子节点
-//         }
-//     }
-// }
-
-
-// void BPlusTree::deserialize(std::ifstream& inFile) {
-//     if (!inFile.is_open()) {
-//         throw std::runtime_error("File not open for reading");
-//     }
-
-//     // 递归反序列化从根节点开始
-//     root = deserializeNode(inFile, nullptr);
-// }
-// BPlusTreeNode* BPlusTree::deserializeNode(std::ifstream& inFile, BPlusTreeNode* parent) {
-//     // 读取节点类型
-//     bool isLeaf;
-//     inFile.read(reinterpret_cast<char*>(&isLeaf), sizeof(isLeaf));
-//     std::cout << "isLeaf: " << isLeaf << std::endl;
-
-//     BPlusTreeNode* node = new BPlusTreeNode(isLeaf);
-//     node->parent = parent;
-
-//     // 读取关键字数量和关键字列表
-//     int keyCount;
-//     inFile.read(reinterpret_cast<char*>(&keyCount), sizeof(keyCount));
-//     node->keys.resize(keyCount);
-//     for (int i = 0; i < keyCount; ++i) {
-//         inFile.read(reinterpret_cast<char*>(&node->keys[i]), sizeof(node->keys[i]));
-//     }
-
-//     if (isLeaf) {
-//         // 读取记录
-//         int recordCount;
-//         inFile.read(reinterpret_cast<char*>(&recordCount), sizeof(recordCount));
-//         node->records.resize(recordCount);
-//         for (int i = 0; i < recordCount; ++i) {
-//             node->records[i] = new Record();
-//             node->records[i]->deserialize(inFile); // 假设 Record 类有 deserialize 函数
-//         }
-
-//         // 读取 children[0]（即 next）是否存在
-//         bool hasNext;
-//         inFile.read(reinterpret_cast<char*>(&hasNext), sizeof(hasNext));
-//         // if (hasNext) {
-//         //     node->children.push_back(deserializeNode(inFile, node)); // 递归读取下一个叶子节点
-//         // } else {
-//         //     node->children.push_back(nullptr);
-//         // }
-//     } else {
-//         // 读取子节点
-//         int childCount;
-//         inFile.read(reinterpret_cast<char*>(&childCount), sizeof(childCount));
-//         node->children.resize(childCount);
-//         for (int i = 0; i < childCount; ++i) {
-//             node->children[i] = deserializeNode(inFile, node); // 递归读取子节点
-//         }
-//     }
-
-//     std::cout << "Node: " << node->toString() << std::endl;
-//     return node;
-// }
 
