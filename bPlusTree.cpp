@@ -246,28 +246,30 @@ void BPlusTree::serialize(const std::string& filename){
     file.close();
 }
 
-void BPlusTree::serializeNode(std::ofstream& file, BPlusTreeNode* node){
-    if(!node) return;
+void BPlusTree::serializeNode(std::ofstream& file, BPlusTreeNode* node) {
+    if (!node) return;
+    
     file.write(reinterpret_cast<char*>(&node->isLeaf), sizeof(bool));
+    
     size_t keySize = node->keys.size();
     file.write(reinterpret_cast<char*>(&keySize), sizeof(size_t));
     file.write(reinterpret_cast<char*>(node->keys.data()), keySize * sizeof(float));
 
-    if(node->isLeaf){
+    if (node->isLeaf) {
         size_t recordSize = node->records.size();
         file.write(reinterpret_cast<char*>(&recordSize), sizeof(size_t));
-        for(auto* record : node->records){
+        for (auto* record : node->records) {
             file.write(reinterpret_cast<char*>(record), sizeof(Record));
         }
-        } 
-    else {
-            size_t childSize = node->children.size();
-            file.write(reinterpret_cast<char*>(&childSize), sizeof(size_t));
-            for (auto* child : node->children) {
-                serializeNode(file, child);
-            }
+    } else {
+        size_t childSize = node->children.size();
+        file.write(reinterpret_cast<char*>(&childSize), sizeof(size_t));
+        for (auto* child : node->children) {
+            serializeNode(file, child);
         }
+    }
 }
+
 
 
 void BPlusTree::deserialize(const std::string& filename){
@@ -280,28 +282,51 @@ void BPlusTree::deserialize(const std::string& filename){
     file.close();
 }
 
-BPlusTreeNode* deserializeNode(std::ifstream& file){
+BPlusTreeNode* deserializeNode(std::ifstream& file, BPlusTreeNode* parent){
+    if (file.eof()) return nullptr;
+
     bool isLeaf;
     file.read(reinterpret_cast<char*>(&isLeaf), sizeof(bool));
+    if (file.fail()) return nullptr;
+
     BPlusTreeNode* node = new BPlusTreeNode(isLeaf);
+    node->parent = parent;
+
     size_t keySize;
     file.read(reinterpret_cast<char*>(&keySize), sizeof(size_t));
+    if (file.fail()) return nullptr;
+
     node->keys.resize(keySize);
     file.read(reinterpret_cast<char*>(node->keys.data()), keySize * sizeof(float));
+    
     if (node->isLeaf) {
+
         size_t recordSize;
         file.read(reinterpret_cast<char*>(&recordSize), sizeof(size_t));
+        if (file.fail()) return nullptr;
+        
         for (size_t i=0; i < recordSize; i++){
+
             Record* record = new Record();
             file.read(reinterpret_cast<char*>(record), sizeof(Record));
+            if (file.fail()) {
+                delete record;
+                return nullptr;
+            }
             node->records.push_back(record);
         }
     }
     else {
+
         size_t childSize;
         file.read(reinterpret_cast<char*>(&childSize), sizeof(size_t));
+        if (file.fail()) return nullptr;
+
         for (size_t i=0; i < childSize; i++) {
-            node->children.push_back(deserializeNode(file));
+            BPlusTreeNode* child = deserializeNode(file, node);
+            if (child){
+                node->children.push_back(child);
+            }
         }
 
     }
