@@ -342,3 +342,39 @@ BPlusTreeNode* BPlusTree::deserializeNode(std::ifstream& inFile, BPlusTreeNode* 
     return node;
 }
 
+void BPlusTree::printStatics() {
+    std::vector<BPlusTreeNode*> currentLevel;
+    std::vector<BPlusTreeNode*> nextLevel;
+    currentLevel.push_back(root);
+    int level = 0;
+    int totRecord = 0;
+    int count = 0;
+    while (!currentLevel.empty()) {
+        count += currentLevel.size();
+        for (BPlusTreeNode* node : currentLevel) {
+            if (node->isLeaf) {
+                totRecord += node->records.size();
+            } else {
+                for (BPlusTreeNode* child : node->children) {
+                    nextLevel.push_back(child);
+                }
+            }
+        }
+        currentLevel = nextLevel;
+        nextLevel.clear();
+        level++;
+    }
+
+    std::cout << "the parameter n of the B+ tree is: " << branchingFactor << std::endl;
+    std::cout << "the number of nodes of the B+ tree: " << count << std::endl;
+    std::cout << "the number of levels in the B+ tree is: " << level << std::endl;
+    std::cout << "the content of the root node: [";
+    for (float key : root->keys) {
+        if(key == root->keys.back()) {
+            std::cout << key;
+        } else {
+            std::cout << key << ",";
+        }
+    }
+    std::cout << ']' << std::endl;
+}
