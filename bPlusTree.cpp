@@ -187,7 +187,8 @@ void BPlusTree::printTree() {
     std::cout << "End of printing tree." << std::endl;
 }
 
-std::vector<Record*> BPlusTree::search(float low, float high) {
+std::vector<Record*> BPlusTree::search(float low, float high, int& blockAccess) {
+    blockAccess = 0;
     std::vector<Record*> result;
     if (root == nullptr) {
         return result;
@@ -195,6 +196,7 @@ std::vector<Record*> BPlusTree::search(float low, float high) {
 
     BPlusTreeNode* node = root;
     while (!node->isLeaf) {
+        blockAccess++;
         int index = std::lower_bound(node->keys.begin(), node->keys.end(), low) - node->keys.begin();
         node = node->children[index];
     }
@@ -207,6 +209,7 @@ std::vector<Record*> BPlusTree::search(float low, float high) {
     }
 
     while (node != nullptr) {
+        blockAccess++;
         for (size_t i = 0; i < node->keys.size(); ++i) {
             float key = node->keys[i];
             if (key >= low && key <= high) {

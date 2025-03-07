@@ -29,7 +29,7 @@ class BPlusTree{
         : minKey(minKey), maxKey(maxKey), branchingFactor(branchingFactor), root(nullptr) {}
     
         void insert(Record* record);
-        std::vector<Record*> search(float low, float high);
+        std::vector<Record*> search(float low, float high, int& blockAccess);
         void printTree();
         void serialize(const std::string& filename) const;
         void deserialize(const std::string& filename);
