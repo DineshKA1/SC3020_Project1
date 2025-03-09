@@ -9,29 +9,33 @@
 
 using namespace std;
 
+
+
 int main() {
+    int timeOfExecution = 1000;
     Storage storageManager;
     storageManager.loadFromDB("games.db");
     int num = storageManager.getNumOfBlocks();
-
+    
+    auto startTime = chrono::high_resolution_clock::now();
+    int blockAccess = 0, siz = 0;
+    float sumFGPCTHome = 0;
     BPlusTree bpTree;
     bpTree.deserialize("bplustree.dat");
-    cout << "B+ tree loaded." << endl;
-    auto startTime = chrono::high_resolution_clock::now();
-    int blockAccess = 0;
-    auto result = bpTree.search(0.6, 0.9, blockAccess);
-    for (int i = 0; i < 100; ++i) {  // 重复执行多次
-        result = bpTree.search(0.6, 0.9, blockAccess);
+    for(int i = 0; i < timeOfExecution; ++i) {
+        blockAccess = 0;
+        auto result = bpTree.search(0.6, 0.9, blockAccess);
+        sumFGPCTHome = 0;
+        siz = 0;
+        for(auto record:result) 
+            sumFGPCTHome += record->FG_PCT_home, siz++;
     }
-    float sumFGPCTHome = 0;
-    for(auto record:result) 
-        sumFGPCTHome += record->FG_PCT_home;
     auto endTime = chrono::high_resolution_clock::now();
     cout << "Stats:" << endl;     
-    auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime);
-    std::cout << "Time consumed: " << elapsed.count() << " ns" << std::endl;
+    auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
+    std::cout << "Time consumed: " << elapsed.count() / (float) timeOfExecution << " ms" << std::endl;
     cout << "Block access: " << blockAccess << endl;
-    cout << "Average FG_PCT_home: " << sumFGPCTHome << '/' << result.size() << '=' << sumFGPCTHome / result.size()<< endl;
+    cout << "Average FG_PCT_home: " << sumFGPCTHome << '/' << siz << '=' << sumFGPCTHome / siz<< endl;
     cout << endl;
 
     //brute-force
@@ -53,8 +57,8 @@ int main() {
     }
     auto endTimeBrute = chrono::high_resolution_clock::now();
     cout << "Stats - brute-force:" << endl; 
-    auto elapsedBrute = std::chrono::duration_cast<std::chrono::nanoseconds>(endTimeBrute - startTimeBrute);
-    std::cout << "Time consumed: " << elapsedBrute.count() << " ns" << std::endl;
+    auto elapsedBrute = std::chrono::duration_cast<std::chrono::microseconds>(endTimeBrute - startTimeBrute);
+    std::cout << "Time consumed: " << elapsedBrute.count() << " ms" << std::endl;
     cout << "Block access: " << blockAccess << endl;
     cout << "Average FG_PCT_home (brute-force): " << sumFGPCTHomeBrute<< '/' << count << '=' << sumFGPCTHomeBrute / count << endl;
     return 0;

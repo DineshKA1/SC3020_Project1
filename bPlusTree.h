@@ -25,7 +25,7 @@ struct BPlusTreeNode
 
 class BPlusTree{
     public:
-        BPlusTree(float minKey = 0.0, float maxKey = 1.0, int branchingFactor = 3) 
+        BPlusTree(float minKey = 0.0, float maxKey = 1.0, int branchingFactor = 236) 
         : minKey(minKey), maxKey(maxKey), branchingFactor(branchingFactor), root(nullptr) {}
     
         void insert(Record* record);
